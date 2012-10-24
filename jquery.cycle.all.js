@@ -78,6 +78,11 @@ $.fn.cycle = function(options, arg2) {
 		var els = $slides.get();
 
 		if (els.length < 2) {
+                        $cont.find('img[data-src]').each(function() {
+                          var $this = $(this);
+                          $this.attr('src', $this.attr('data-src'));
+                          $this.removeAttr('data-src');
+                        })
 			log('terminating; too few slides: ' + els.length);
 			return;
 		}
@@ -223,6 +228,18 @@ function destroy(cont, opts) {
 		opts.destroy(opts);
 }
 
+$.fn.cycle.lazyLoad = function($cont, slide) {
+  $(slide).find('img[data-src]').each(function() {
+    var $this = $(this);
+    var pauseFlag = true;
+    this.cyclePause++;
+    triggerPause($cont);
+    $this.load(function() {if (pauseFlag) this.cyclePause--; triggerPause($cont)});
+    $this.attr('src', $this.attr('data-src'));
+    $this.removeAttr('data-src');
+  })
+}
+
 // one-time initialization
 function buildOptions($cont, $slides, els, options, o) {
 	var startingSlideSpecified;
@@ -307,6 +324,8 @@ function buildOptions($cont, $slides, els, options, o) {
 			z = first ? i >= first ? els.length - (i-first) : first-i : els.length-i;
 		$(this).css('z-index', z);
 	});
+
+        $.fn.cycle.lazyLoad($cont, els[first]);
 
 	// make sure first slide is visible
 	$(els[first]).css('opacity',1).show(); // opacity bit needed to handle restart use case
@@ -703,6 +722,8 @@ function go(els, opts, manual, fwd) {
 		};
 
 		debug('tx firing('+fx+'); currSlide: ' + opts.currSlide + '; nextSlide: ' + opts.nextSlide);
+
+                $.fn.cycle.lazyLoad(opts.$cont[0], next);
 		
 		// get ready to perform the transition
 		opts.busy = 1;
